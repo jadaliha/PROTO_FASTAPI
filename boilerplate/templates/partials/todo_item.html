@@ -1,0 +1,10 @@
+<li class="todo-item {% if todo.completed %}completed{% endif %}" id="todo-{{ todo.id }}">
+    <input type="checkbox" {% if todo.completed %}checked{% endif %} hx-put="/todos/{{ todo.id }}/toggle"
+        hx-target="#todo-{{ todo.id }}" hx-swap="outerHTML" hx-trigger="change"
+        hx-on::after-request="htmx.trigger('body', 'todoChanged')">
+    <span class="todo-title">{{ todo.title }}</span>
+    <button class="delete-btn" hx-delete="/todos/{{ todo.id }}" hx-target="#todo-{{ todo.id }}" hx-swap="outerHTML"
+        hx-confirm="Delete this todo?" hx-on::after-request="htmx.trigger('body', 'todoChanged')">
+        x
+    </button>
+</li>

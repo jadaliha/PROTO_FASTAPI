@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App - Protobuf Edition</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "xstate": "https://cdn.jsdelivr.net/npm/xstate@5.25.0/+esm",
+            "protobufjs": "https://esm.sh/protobufjs@7.2.5"
+        }
+    }
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>Todo List</h1>
+            <div id="stats">
+                <div class="stats">
+                    <span><strong>0</strong> total</span>
+                    <span><strong>0</strong> active</span>
+                    <span><strong>0</strong> completed</span>
+                </div>
+            </div>
+        </header>
+        <main>
+            <form id="todo-form">
+                <input type="text" name="title" placeholder="What needs to be done?" required autocomplete="off">
+                <button type="submit">Add</button>
+            </form>
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="window.changeFilter('all')">All</button>
+                <button class="filter-tab" onclick="window.changeFilter('active')">Active</button>
+                <button class="filter-tab" onclick="window.changeFilter('completed')">Completed</button>
+            </div>
+            <ul id="todo-list" class="todo-items">
+                <li class="loading-state">Loading todos...</li>
+            </ul>
+        </main>
+    </div>
+    <script type="module" src="/static/app.js"></script>
+</body>
+
+</html>
