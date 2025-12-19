@@ -22,39 +22,16 @@ class ProtobufResponse(Response):
             raise ValueError(f"Content must be a protobuf Message or bytes, got {type(content)}")
 
 
-async def parse_protobuf_body(request: Request, message_type: Type[T]) -> T:
-    """
-    Parse protobuf from request body.
-    
-    Usage:
-        async def create_todo(request: Request):
-            req = await parse_protobuf_body(request, CreateTodoRequest)
-            # Use req.title, etc.
-    """
-    body = await request.body()
-    message = message_type()
-    message.ParseFromString(body)
-    return message
+class ProtobufBody:
+    """Dependency for FastAPI to automatically parse protobuf bodies."""
+    def __init__(self, message_type: Type[T]):
+        self.message_type = message_type
 
-
-def ProtobufBody(message_type: Type[T]) -> Callable:
-    """
-    Dependency factory for FastAPI to automatically parse protobuf bodies.
-    
-    Usage:
-        @app.post("/api/todos")
-        async def create_todo(req: CreateTodoRequest = ProtobufBody(CreateTodoRequest)):
-            # req is already parsed!
-            return response
-    """
-    async def dependency(request: Request) -> T:
-        return await parse_protobuf_body(request, message_type)
-    return dependency
-
-
-def protobuf_response(message: Message) -> ProtobufResponse:
-    """Helper function to create a ProtobufResponse"""
-    return ProtobufResponse(content=message)
+    async def __call__(self, request: Request) -> T:
+        body = await request.body()
+        msg = self.message_type()
+        msg.ParseFromString(body)
+        return msg
 
 
 class ProtobufRouter:
@@ -91,17 +68,7 @@ class ProtobufRouter:
             return decorator
         return method
 
-    @property
-    def get(self): return self._make_method("get")
-    
-    @property
-    def post(self): return self._make_method("post")
-    
-    @property
-    def put(self): return self._make_method("put")
-    
-    @property
-    def delete(self): return self._make_method("delete")
-    
-    @property
-    def patch(self): return self._make_method("patch")
+    def __getattr__(self, name: str):
+        if name in ("get", "post", "put", "delete", "patch"):
+            return self._make_method(name)
+        return getattr(self.router, name)
