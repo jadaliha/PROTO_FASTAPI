@@ -8,7 +8,7 @@ from typing import Optional
 import time
 
 # Import protobuf utilities
-from protobuf_utils import ProtobufResponse, ProtobufBody
+from protobuf_utils import ProtobufResponse, ProtobufBody, ProtobufRouter
 
 # Import generated protobuf classes
 import protos.todo_pb2 as todo_pb
@@ -36,7 +36,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/protos", StaticFiles(directory="protos"), name="protos")
 templates = Jinja2Templates(directory="templates")
+
+# Initialize Protobuf Router
+proto = ProtobufRouter(app)
 
 def get_db():
     return duckdb.connect(DB_PATH)
@@ -61,8 +65,8 @@ async def home(request: Request):
         "todos": [{"id": t[0], "title": t[1], "completed": t[2], "created_at": t[3]} for t in todos]
     })
 
-# Protobuf API endpoints with custom response class
-@app.get("/api/todos", response_class=ProtobufResponse)
+# Protobuf API endpoints using the simplified @proto decorators
+@proto.get("/api/todos")
 async def get_todos_proto():
     """Get all todos as protobuf"""
     conn = get_db()
@@ -74,9 +78,9 @@ async def get_todos_proto():
         todo = todo_list.todos.add()
         todo.CopyFrom(row_to_todo_proto(row))
     
-    return ProtobufResponse(todo_list)
+    return todo_list
 
-@app.post("/api/todos", response_class=ProtobufResponse)
+@proto.post("/api/todos")
 async def create_todo_proto(req: todo_pb.CreateTodoRequest = Depends(ProtobufBody(todo_pb.CreateTodoRequest))):
     """Create todo via protobuf - request automatically parsed!"""
     conn = get_db()
@@ -88,9 +92,9 @@ async def create_todo_proto(req: todo_pb.CreateTodoRequest = Depends(ProtobufBod
     response.message = "Todo created"
     response.todo.CopyFrom(row_to_todo_proto(row))
     
-    return ProtobufResponse(response)
+    return response
 
-@app.put("/api/todos/{todo_id}/toggle", response_class=ProtobufResponse)
+@proto.put("/api/todos/{todo_id}/toggle")
 async def toggle_todo_proto(
     todo_id: int,
     req: todo_pb.UpdateTodoRequest = Depends(ProtobufBody(todo_pb.UpdateTodoRequest))
@@ -109,9 +113,9 @@ async def toggle_todo_proto(
     response.message = "Todo updated"
     response.todo.CopyFrom(row_to_todo_proto(row))
     
-    return ProtobufResponse(response)
+    return response
 
-@app.delete("/api/todos/{todo_id}", response_class=ProtobufResponse)
+@proto.delete("/api/todos/{todo_id}")
 async def delete_todo_proto(todo_id: int):
     """Delete todo via protobuf"""
     conn = get_db()
@@ -122,9 +126,9 @@ async def delete_todo_proto(todo_id: int):
     response.success = True
     response.message = "Todo deleted"
     
-    return ProtobufResponse(response)
+    return response
 
-@app.get("/api/stats", response_class=ProtobufResponse)
+@proto.get("/api/stats")
 async def get_stats_proto():
     """Get statistics via protobuf"""
     conn = get_db()
@@ -141,7 +145,7 @@ async def get_stats_proto():
     response.success = True
     response.stats.CopyFrom(stats)
     
-    return ProtobufResponse(response)
+    return response
 
 # Legacy HTMX endpoint (optional fallback)
 @app.post("/todos", response_class=HTMLResponse)

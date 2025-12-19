@@ -12,7 +12,7 @@ let actor = null;
 // Initialize protobuf
 async function initProtobuf() {
     try {
-        const response = await fetch('/static/todo.proto');
+        const response = await fetch('/protos/todo.proto');
         const protoText = await response.text();
         protoRoot = protobuf.parse(protoText).root;
 

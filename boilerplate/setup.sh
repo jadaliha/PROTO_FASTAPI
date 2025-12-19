@@ -22,10 +22,6 @@ python3 -m grpc_tools.protoc \
   --python_out=./protos \
   ./protos/todo.proto
 
-# Copy proto file to static for frontend
-echo "📋 Copying proto file for frontend..."
-cp protos/todo.proto static/todo.proto
-
 echo "✅ Setup complete!"
 echo ""
 echo "To run the app:"
