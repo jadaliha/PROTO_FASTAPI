@@ -1,30 +1,34 @@
 #!/bin/bash
 
-# Setup script for Protobuf Todo App
+# Setup script for Todo App
+# Single source of truth: protos/todo.proto
 
-echo "🔧 Setting up Todo App with Protobuf..."
+set -e
 
-# Create directory structure
-echo "📁 Creating directories..."
-mkdir -p protos
-mkdir -p protos/generated
-mkdir -p templates/partials
-mkdir -p static
+echo "🔧 Setting up Todo App..."
 
-# Install Python dependencies
+mkdir -p protos templates/partials static
+
 echo "📦 Installing Python dependencies..."
 pip3 install -r requirements.txt
 
-# Generate Python protobuf code
-echo "🔨 Generating Python protobuf code..."
+echo ""
+echo "🔄 Generating Python protobuf from todo.proto..."
 python3 -m grpc_tools.protoc \
   -I./protos \
   --python_out=./protos \
+  --pyi_out=./protos \
   ./protos/todo.proto
 
+echo "  ✅ protos/todo_pb2.py"
+
+echo ""
 echo "✅ Setup complete!"
 echo ""
-echo "To run the app:"
-echo "  python main.py"
+echo "📐 Architecture:"
+echo "   protos/todo.proto (SOURCE OF TRUTH)"
+echo "   ├── protos/todo_pb2.py  (Python backend)"
+echo "   └── static/app.js       (JS loads .proto at runtime via protobuf.js)"
 echo ""
-echo "Then visit: http://localhost:8080"
+echo "To run: python main.py"
+echo "Visit:  http://localhost:8080"
