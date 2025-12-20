@@ -41,3 +41,17 @@ message ApiResponse {
     TodoStats stats = 5;
   }
 }
+
+// WebSocket real-time events (changes only)
+enum EventType {
+  CREATED = 0;
+  UPDATED = 1;
+  DELETED = 2;
+}
+
+message TodoEvent {
+  EventType type = 1;
+  Todo todo = 2;           // For CREATED/UPDATED
+  int32 deleted_id = 3;    // For DELETED
+  TodoStats stats = 4;     // Updated stats
+}

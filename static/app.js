@@ -4,6 +4,7 @@ import protobuf from 'protobufjs';
 let types = {};
 let protoRoot = null;
 let actor = null;
+let ws = null;
 
 const api = {
     async call(url, method, reqType, data, resType) {
@@ -25,10 +26,29 @@ const api = {
     deleteTodo: (id) => api.call(`/api/todos/${id}`, 'DELETE', null, null, 'ApiResponse').then(r => r.success)
 };
 
+// Event types from proto enum
+const EventType = { CREATED: 0, UPDATED: 1, DELETED: 2 };
+
 const todoMachine = createMachine({
     id: 'todo',
     initial: 'loading',
     context: { todos: [], stats: { total: 0, active: 0, completed: 0 }, filter: 'all' },
+    // Handle WebSocket events in ALL states (root level)
+    on: {
+        WS_CREATED: { actions: assign({
+            todos: ({ context, event }) => [event.todo, ...context.todos],
+            stats: ({ event }) => event.stats
+        })},
+        WS_UPDATED: { actions: assign({
+            todos: ({ context, event }) => context.todos.map(t => t.id === event.todo.id ? event.todo : t),
+            stats: ({ event }) => event.stats
+        })},
+        WS_DELETED: { actions: assign({
+            todos: ({ context, event }) => context.todos.filter(t => t.id !== event.deletedId),
+            stats: ({ event }) => event.stats
+        })},
+        FILTER: { actions: assign({ filter: ({ event }) => event.value }) }
+    },
     states: {
         loading: {
             invoke: {
@@ -40,44 +60,65 @@ const todoMachine = createMachine({
             on: {
                 ADD: 'adding',
                 TOGGLE: 'toggling',
-                DELETE: 'deleting',
-                FILTER: { actions: assign({ filter: ({ event }) => event.value }) }
+                DELETE: 'deleting'
             }
         },
         adding: {
             invoke: {
                 src: 'addTodo',
                 input: ({ event }) => ({ title: event.title }),
-                onDone: { target: 'refreshing' }
+                onDone: { target: 'idle' }
             }
         },
         toggling: {
             invoke: {
                 src: 'toggleTodo',
                 input: ({ event }) => ({ id: event.id, completed: event.completed }),
-                onDone: { target: 'refreshing' }
+                onDone: { target: 'idle' }
             }
         },
         deleting: {
             invoke: {
                 src: 'deleteTodo',
                 input: ({ event }) => ({ id: event.id }),
-                onDone: { target: 'refreshing' }
-            }
-        },
-        refreshing: {
-            invoke: {
-                src: 'loadData',
-                onDone: { target: 'idle', actions: assign({ todos: ({ event }) => event.output.todos, stats: ({ event }) => event.output.stats }) }
+                onDone: { target: 'idle' }
             }
         }
     }
 });
 
+function connectWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${location.host}/ws/todos`);
+    
+    ws.onmessage = async (event) => {
+        const buffer = await event.data.arrayBuffer();
+        const TodoEvent = types['TodoEvent'];
+        const decoded = TodoEvent.toObject(TodoEvent.decode(new Uint8Array(buffer)), { defaults: true, longs: Number });
+        
+        const stats = decoded.stats || { total: 0, active: 0, completed: 0 };
+        
+        switch (decoded.type) {
+            case EventType.CREATED:
+                actor.send({ type: 'WS_CREATED', todo: decoded.todo, stats });
+                break;
+            case EventType.UPDATED:
+                actor.send({ type: 'WS_UPDATED', todo: decoded.todo, stats });
+                break;
+            case EventType.DELETED:
+                actor.send({ type: 'WS_DELETED', deletedId: decoded.deletedId, stats });
+                break;
+        }
+    };
+    
+    ws.onclose = () => setTimeout(connectWebSocket, 1000);  // Reconnect on disconnect
+    ws.onerror = () => ws.close();
+}
+
 async function init() {
     const protoText = await (await fetch('/protos/todo.proto')).text();
     protoRoot = protobuf.parse(protoText).root;
-    ['Todo', 'CreateTodoRequest', 'UpdateTodoRequest', 'ApiResponse', 'TodoList', 'TodoStats'].forEach(t => {
+    ['Todo', 'CreateTodoRequest', 'UpdateTodoRequest', 'ApiResponse', 'TodoList', 'TodoStats', 'TodoEvent'].forEach(t => {
         types[t] = protoRoot.lookupType(`todo.${t}`);
     });
 
@@ -93,6 +134,7 @@ async function init() {
     actor.subscribe(render);
     actor.start();
     setupEvents();
+    connectWebSocket();
 }
 
 function render(state) {
@@ -102,7 +144,7 @@ function render(state) {
 
     const filtered = todos.filter(t => filter === 'all' || (filter === 'active' ? !t.completed : t.completed));
     list.innerHTML = filtered.length > 0 ? filtered.map(t => `
-        <li class="todo-item ${t.completed ? 'completed' : ''}">
+        <li class="todo-item ${t.completed ? 'completed' : ''}" data-id="${t.id}">
             <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="window.toggleTodo(${t.id}, this.checked)">
             <span class="todo-title">${escapeHtml(t.title)}</span>
             <button class="delete-btn" onclick="window.deleteTodo(${t.id})">×</button>

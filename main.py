@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Request, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 import duckdb
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 import time
 
 # Import protobuf utilities
@@ -16,6 +16,33 @@ import protos.todo_pb2 as todo_pb
 # Annotated type aliases for protobuf request bodies
 CreateTodoBody = Annotated[todo_pb.CreateTodoRequest, Depends(ProtobufBody(todo_pb.CreateTodoRequest))]
 UpdateTodoBody = Annotated[todo_pb.UpdateTodoRequest, Depends(ProtobufBody(todo_pb.UpdateTodoRequest))]
+
+
+# ============================================================
+# WebSocket Connection Manager
+# ============================================================
+class ConnectionManager:
+    def __init__(self):
+        self.connections: List[WebSocket] = []
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.connections.append(ws)
+
+    def disconnect(self, ws: WebSocket):
+        self.connections.remove(ws)
+
+    async def broadcast(self, event: todo_pb.TodoEvent):
+        """Broadcast protobuf event to all connected clients"""
+        data = event.SerializeToString()
+        for ws in self.connections[:]:  # Copy list to avoid mutation during iteration
+            try:
+                await ws.send_bytes(data)
+            except:
+                self.connections.remove(ws)
+
+ws_manager = ConnectionManager()
+
 
 # Database initialization
 DB_PATH = "todos.db"
@@ -63,6 +90,25 @@ def row_to_todo_proto(row):
     todo.created_at = int(row[3].timestamp()) if row[3] else int(time.time())
     return todo
 
+
+async def get_stats_from_db():
+    """Helper to get current stats"""
+    async with get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM todos").fetchone()[0]
+        completed = conn.execute("SELECT COUNT(*) FROM todos WHERE completed = TRUE").fetchone()[0]
+    return todo_pb.TodoStats(total=total, completed=completed, active=total - completed)
+
+
+async def broadcast_event(event_type: int, todo=None, deleted_id=None):
+    """Broadcast a change event to all WebSocket clients"""
+    stats = await get_stats_from_db()
+    event = todo_pb.TodoEvent(type=event_type, stats=stats)
+    if todo:
+        event.todo.CopyFrom(todo)
+    if deleted_id:
+        event.deleted_id = deleted_id
+    await ws_manager.broadcast(event)
+
 # HTML endpoints (for initial page load)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -92,11 +138,10 @@ async def create_todo_proto(req: CreateTodoBody):
     async with get_db() as conn:
         row = conn.execute("INSERT INTO todos (title) VALUES (?) RETURNING *", [req.title]).fetchone()
     
-    return todo_pb.ApiResponse(
-        success=True, 
-        message="Todo created", 
-        todo=row_to_todo_proto(row)
-    )
+    todo = row_to_todo_proto(row)
+    await broadcast_event(todo_pb.CREATED, todo=todo)
+    
+    return todo_pb.ApiResponse(success=True, message="Todo created", todo=todo)
 
 @proto.put("/api/todos/{todo_id}/toggle")
 async def toggle_todo_proto(todo_id: int, req: UpdateTodoBody):
@@ -107,17 +152,18 @@ async def toggle_todo_proto(todo_id: int, req: UpdateTodoBody):
     
     if not row: raise HTTPException(status_code=404)
     
-    return todo_pb.ApiResponse(
-        success=True, 
-        message="Todo updated", 
-        todo=row_to_todo_proto(row)
-    )
+    todo = row_to_todo_proto(row)
+    await broadcast_event(todo_pb.UPDATED, todo=todo)
+    
+    return todo_pb.ApiResponse(success=True, message="Todo updated", todo=todo)
 
 @proto.delete("/api/todos/{todo_id}")
 async def delete_todo_proto(todo_id: int):
     """Delete todo via protobuf"""
     async with get_db() as conn:
         conn.execute("DELETE FROM todos WHERE id = ?", [todo_id])
+    
+    await broadcast_event(todo_pb.DELETED, deleted_id=todo_id)
     
     return todo_pb.ApiResponse(success=True, message="Todo deleted")
 
@@ -153,6 +199,21 @@ async def system_info(request: Request):
         "todo_count": count,
         "time": time.strftime("%H:%M:%S")
     })
+
+
+# ============================================================
+# WebSocket endpoint for real-time updates
+# ============================================================
+@app.websocket("/ws/todos")
+async def websocket_todos(ws: WebSocket):
+    """Subscribe to real-time todo changes (protobuf protocol)"""
+    await ws_manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_bytes()  # Keep connection alive, ignore client messages
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ws)
+
 
 if __name__ == "__main__":
     import uvicorn
