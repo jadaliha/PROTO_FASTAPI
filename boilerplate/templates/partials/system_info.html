@@ -1,0 +1,5 @@
+<div id="system-info" class="system-info">
+    <p>Database: <strong>DuckDB</strong> | Todos in DB: <strong>{{ todo_count }}</strong> | Last Sync: <strong>{{ time
+            }}</strong></p>
+    <button hx-get="/system-info" hx-target="#system-info" hx-swap="outerHTML">Refresh Info</button>
+</div>

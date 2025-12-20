@@ -7,9 +7,8 @@ Create a full-stack todo list application with the following exact specification
 - **Database**: DuckDB with local file storage
 - **API Protocol**: Protocol Buffers (protobuf) for all API communication
 - **Frontend State Management**: XState5 for managing application state
-- **Frontend**: Vanilla JavaScript, HTML, CSS (no build tools)
-- **Server-Side Rendering**: Jinja2 templates for initial page load
-- **Optional Enhancement**: HTMX for fallback HTML endpoints
+- **Frontend**: Vanilla JavaScript, AlpineJS, HTML, CSS (no build tools)
+- **Server-Side Rendering**: Jinja2 templates and HTMX endpoints
 
 ## Architecture Constraints
 1. **Minimize lines of code** - prioritize readability and AI-debuggability
@@ -76,7 +75,7 @@ CREATE TABLE todos (
 4. **API wrapper**: Functions that encode/decode protobuf using protobuf.js library
 
 Frontend should:
-- Load protobuf schema from `/static/todo.proto`
+- Load protobuf schema from `/protos/todo.proto`
 - Initialize XState actor with services
 - Subscribe to state changes and render UI
 - Handle all CRUD operations through state machine
@@ -108,8 +107,7 @@ Create `setup.sh` that:
 1. Creates directory structure
 2. Installs Python dependencies
 3. Generates Python protobuf code: `python -m grpc_tools.protoc -I./protos --python_out=./protos ./protos/todo.proto`
-4. Copies proto file to static directory
-5. Prints instructions to run the app
+4. Prints instructions to run the app
 
 ## UI Requirements
 - Modern, clean design with good spacing

@@ -14,6 +14,7 @@
         }
     }
     </script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 
 <body>
@@ -42,6 +43,11 @@
                 <li class="loading-state">Loading todos...</li>
             </ul>
         </main>
+        <footer>
+            <div hx-get="/system-info" hx-trigger="load">
+                Loading system info...
+            </div>
+        </footer>
     </div>
     <script type="module" src="/static/app.js"></script>
 </body>

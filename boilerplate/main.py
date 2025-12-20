@@ -144,6 +144,16 @@ async def create_todo(request: Request, title: str = Form(...)):
         "todos": [{"id": t[0], "title": t[1], "completed": t[2], "created_at": t[3]} for t in todos]
     })
 
+@app.get("/system-info", response_class=HTMLResponse)
+async def system_info(request: Request):
+    async with get_db() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM todos").fetchone()[0]
+    return templates.TemplateResponse("partials/system_info.html", {
+        "request": request,
+        "todo_count": count,
+        "time": time.strftime("%H:%M:%S")
+    })
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
