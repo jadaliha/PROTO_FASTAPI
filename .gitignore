@@ -1,3 +1,10 @@
-.DS_Store
-boilerplate/todos.db
-boilerplate/todos.db
+todos.db
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.env
+.vscode/
+.idea/
