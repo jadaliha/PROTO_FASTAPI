@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════
+# TODO MACHINE - Application logic in one file
+# ═══════════════════════════════════════════════════════════════
+# 
+# Native expressions for each runtime:
+#   py: Python syntax (server)
+#   js: JavaScript syntax (client)
+#
+# ═══════════════════════════════════════════════════════════════
+
+id: todo
+initial: ready
+
+context:
+  items: []
+  filter: all
+  next_id: 1
+
+states:
+  ready:
+    "on":
+      CREATE:
+        actions: [createItem]
+        guard: validTitle
+      TOGGLE:
+        actions: [toggleItem]
+      DELETE:
+        actions: [deleteItem]
+      FILTER:
+        actions: [setFilter]
+
+actions:
+  createItem:
+    update:
+      items:
+        py: "[*items, {'id': next_id, 'title': event['title'], 'completed': False}]"
+        js: "[...items, {id: next_id, title: event.title, completed: false}]"
+      next_id:
+        py: "next_id + 1"
+        js: "next_id + 1"
+  
+  toggleItem:
+    update:
+      items:
+        py: "[{**i, 'completed': event['completed']} if i['id'] == event['id'] else i for i in items]"
+        js: "items.map(i => i.id === event.id ? {...i, completed: event.completed} : i)"
+  
+  deleteItem:
+    update:
+      items:
+        py: "[i for i in items if i['id'] != event['id']]"
+        js: "items.filter(i => i.id !== event.id)"
+  
+  setFilter:
+    update:
+      filter:
+        py: "event['filter']"
+        js: "event.filter"
+
+guards:
+  validTitle:
+    condition:
+      py: "0 < len(event['title']) < 200"
+      js: "event.title.length > 0 && event.title.length < 200"

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Todo</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "protobufjs": "https://esm.sh/protobufjs@7.2.5",
+            "js-yaml": "https://esm.sh/js-yaml@4.1.0"
+        }
+    }
+    </script>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Unified Todo</h1>
+            <div id="stats"></div>
+        </header>
+
+        <form id="form">
+            <input type="text" name="title" placeholder="What needs to be done?" required autocomplete="off">
+            <button type="submit">Add</button>
+        </form>
+
+        <nav>
+            <button data-filter="all" class="active">All</button>
+            <button data-filter="active">Active</button>
+            <button data-filter="completed">Done</button>
+        </nav>
+
+        <ul id="items"></ul>
+
+        <footer>
+            <small>State synced via WebSocket + Protobuf</small>
+        </footer>
+    </div>
+
+    <script type="module" src="/static/app.js"></script>
+</body>
+</html>
+

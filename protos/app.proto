@@ -1,0 +1,61 @@
+syntax = "proto3";
+package app;
+
+// ═══════════════════════════════════════════════════════════════
+// DOMAIN TYPES - Define your data here
+// ═══════════════════════════════════════════════════════════════
+
+message Todo {
+  int32 id = 1;
+  string title = 2;
+  bool completed = 3;
+}
+
+message TodoList {
+  repeated Todo items = 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT PAYLOADS - What data comes with each event
+// ═══════════════════════════════════════════════════════════════
+
+message CreatePayload { string title = 1; }
+message TogglePayload { int32 id = 1; bool completed = 2; }
+message DeletePayload { int32 id = 1; }
+message FilterPayload { string filter = 1; }
+
+// ═══════════════════════════════════════════════════════════════
+// STATE CONTEXT - The machine's extended state
+// ═══════════════════════════════════════════════════════════════
+
+message AppContext {
+  repeated Todo items = 1;
+  string filter = 2;  // "all" | "active" | "completed"
+  int32 next_id = 3;  // Auto-increment ID
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC PROTOCOL - Communication between server and client
+// ═══════════════════════════════════════════════════════════════
+
+message MachineState {
+  string state = 1;           // Current state name
+  AppContext context = 2;     // Full context
+  uint64 version = 3;         // Monotonic version
+}
+
+message MachineEvent {
+  string type = 1;            // Event type: "CREATE", "TOGGLE", etc.
+  bytes payload = 2;          // Serialized payload proto
+  uint64 client_version = 3;  // Client's known version
+}
+
+message SyncMessage {
+  oneof msg {
+    MachineState snapshot = 1;   // Server → Client: full state
+    MachineEvent event = 2;      // Client → Server: event
+    MachineState update = 3;     // Server → Client: state after event
+    string error = 4;            // Server → Client: rejection reason
+  }
+}
+
