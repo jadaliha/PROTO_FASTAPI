@@ -49,6 +49,15 @@
             </div>
         </footer>
     </div>
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal">
+            <p>Delete this todo?</p>
+            <div class="modal-buttons">
+                <button onclick="window.cancelDelete()">Cancel</button>
+                <button class="danger" onclick="window.confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
     <script type="module" src="/static/app.js"></script>
 </body>
 

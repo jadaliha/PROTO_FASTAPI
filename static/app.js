@@ -147,7 +147,7 @@ function render(state) {
         <li class="todo-item ${t.completed ? 'completed' : ''}" data-id="${t.id}">
             <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="window.toggleTodo(${t.id}, this.checked)">
             <span class="todo-title">${escapeHtml(t.title)}</span>
-            <button class="delete-btn" onclick="window.deleteTodo(${t.id})">×</button>
+            <button class="delete-btn" hx-disable onclick="window.deleteTodo(event, ${t.id})">×</button>
         </li>
     `).join('') : '<li class="empty-state">No items.</li>';
 
@@ -179,7 +179,29 @@ function setupEvents() {
 }
 
 window.toggleTodo = (id, completed) => actor.send({ type: 'TOGGLE', id, completed });
-window.deleteTodo = (id) => confirm('Delete?') && actor.send({ type: 'DELETE', id });
+
+let pendingDeleteId = null;
+
+window.deleteTodo = (event, id) => {
+    event.stopPropagation();
+    event.preventDefault();
+    pendingDeleteId = id;
+    document.getElementById('confirm-modal').classList.add('show');
+};
+
+window.confirmDelete = () => {
+    if (pendingDeleteId !== null) {
+        actor.send({ type: 'DELETE', id: pendingDeleteId });
+        pendingDeleteId = null;
+    }
+    document.getElementById('confirm-modal').classList.remove('show');
+};
+
+window.cancelDelete = () => {
+    pendingDeleteId = null;
+    document.getElementById('confirm-modal').classList.remove('show');
+};
+
 window.changeFilter = (value) => actor.send({ type: 'FILTER', value });
 
 function escapeHtml(t) {

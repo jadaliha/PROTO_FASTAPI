@@ -217,3 +217,28 @@ footer {
 .system-info button:hover {
     background: #eee;
 }
+
+/* Confirmation Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.modal p { margin-bottom: 20px; }
+
+.modal-buttons { display: flex; gap: 10px; justify-content: center; }
