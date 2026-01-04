@@ -1,5 +1,7 @@
 import { createMachine, createActor, assign, fromPromise } from 'xstate';
 import protobuf from 'protobufjs';
+import { VibeKanbanWebCompanion } from 'vibe-kanban-web-companion';
+import { createRoot } from 'react-dom/client';
 
 let types = {};
 let protoRoot = null;
@@ -116,6 +118,13 @@ function connectWebSocket() {
 }
 
 async function init() {
+    // Initialize Vibe Kanban Web Companion
+    const vibeKanbanRoot = document.getElementById('vibe-kanban-root');
+    if (vibeKanbanRoot) {
+        const root = createRoot(vibeKanbanRoot);
+        root.render(VibeKanbanWebCompanion());
+    }
+
     const protoText = await (await fetch('/protos/todo.proto')).text();
     protoRoot = protobuf.parse(protoText).root;
     ['Todo', 'CreateTodoRequest', 'UpdateTodoRequest', 'ApiResponse', 'TodoList', 'TodoStats', 'TodoEvent'].forEach(t => {

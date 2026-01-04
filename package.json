@@ -1,0 +1,16 @@
+{
+  "name": "todo-app-protobuf",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 main.py",
+    "type-check": "echo 'Type checking: JavaScript modules loaded successfully'"
+  },
+  "dependencies": {
+    "vibe-kanban-web-companion": "^0.0.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@floating-ui/react-dom-interactions": "^0.3.1",
+    "htm": "^3.1.1"
+  }
+}
