@@ -1,6 +1,10 @@
-# FastAPI + Protobuf + XState5 Boilerplate Skill
+---
+name: webapp-Boilerplate
+description: A reusable skill for rapidly building POCs with type-safe binary communication, efficient state management, and minimal code complexity. This skill enforce FastAPI + Protobuf + XState5 as tech stack.
+license: free
+---
 
-A reusable skill for rapidly building POCs with type-safe binary communication, efficient state management, and minimal code complexity.
+# FastAPI + Protobuf + XState5 Boilerplate Skill
 
 ## 🎯 When to Use This Boilerplate
 
@@ -24,17 +28,11 @@ A reusable skill for rapidly building POCs with type-safe binary communication, 
 │   (Frontend)    │                 │   (Backend)     │
 └─────────────────┘                 └─────────────────┘
          │                                   │
-         │                                   ▼
-         │                          ┌─────────────────┐
-         │                          │   DuckDB        │
-         │                          │   (Database)    │
-         │                          └─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│   HTML/CSS      │
-│   (Presentation)│
-└─────────────────┘
+         ▼                                   ▼
+ ┌─────────────────┐                ┌─────────────────┐
+ │   HTML/CSS      │                │   DuckDB        │
+ │   (Presentation)│                │   (Database)    │
+ └─────────────────┘                └─────────────────┘
 ```
 
 ### Key Components
